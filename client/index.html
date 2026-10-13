@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KestrelCI — Simulated CI/CD Pipeline & Orchestration Engine</title>
+    <meta name="description" content="An editorial, high-precision web platform that simulates continuous integration and deployment pipelines with live stage transitions, failure injection, and persisted diagnostics." />
+
+    <!-- Open Graph & Social Meta -->
+    <meta property="og:title" content="KestrelCI — Simulated CI/CD Pipeline Platform" />
+    <meta property="og:description" content="Explore realistic 7-stage CI/CD execution, test failure propagation, inspect structured logs, and experiment with deterministic recovery workflows." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kestrel-ci.internal" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D9532F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>" />
+
+    <!-- Preload Authentic Squarespace Fonts -->
+    <link rel="preload" href="/fonts/clarkson-300.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/clarkson-400.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Google Fonts Fallbacks: Instrument Sans, Instrument Serif & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Zero-Flash Pre-Paint Theme Initialization Script -->
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('kestrel-theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-base-light dark:bg-base-dark text-ink antialiased selection:bg-accent/20 selection:text-accent">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

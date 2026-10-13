@@ -1,0 +1,181 @@
+/**
+ * @file client/src/styles/tokens.css
+ * @description Central CSS custom properties design tokens for KestrelCI.
+ * Implements the Squarespace Design Intelligence aesthetic:
+ * - Pure black cinematic stage (#000000) for hero, closing band, and footer
+ * - Clean paper white (#FDFCFA) in light mode, warm near-black (#07070A) in dark mode
+ * - Strictly monochrome chrome: NO orange or brand accent fills on buttons
+ * - Muted semantic status colors used only on pipeline status indicators
+ * - Light-weight neo-grotesk (Instrument Sans) + Monospace (JetBrains Mono) + Serif display (Instrument Serif)
+ * - Restrained 1px hairlines at ~10-12% opacity, square corners
+ */
+
+:root {
+  /* Permanent Stage Black (Always dark in both themes) */
+  --stage-black: #000000;
+  --stage-dark-card: #0E1015;
+  --stage-dark-elevated: #151720;
+  --stage-hairline: rgba(255, 255, 255, 0.12);
+  --stage-hairline-strong: rgba(255, 255, 255, 0.24);
+  --stage-text-primary: #FFFFFF;
+  --stage-text-secondary: rgba(255, 255, 255, 0.65);
+  --stage-text-tertiary: rgba(255, 255, 255, 0.40);
+
+  /* Light Theme (Clean Paper White & Deep Charcoal Ink) */
+  --color-bg-base: #FDFCFA;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-surface-subtle: #F4F1EA;
+  --color-bg-card: #FFFFFF;
+
+  --color-ink-primary: #07070A;
+  --color-ink-muted: #5A5D6B;
+  --color-ink-faint: #8E92A2;
+
+  --color-border: rgba(0, 0, 0, 0.10);
+  --color-border-strong: rgba(0, 0, 0, 0.20);
+
+  /* Primary Button Tokens (Inverted High Contrast) */
+  --btn-primary-bg: #07070A;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover-bg: #22242D;
+
+  /* Semantic Pipeline Status Colors (Muted, Strictly for Status Elements) */
+  --color-status-success: #16A34A;
+  --color-status-success-bg: rgba(22, 163, 74, 0.08);
+  --color-status-success-border: rgba(22, 163, 74, 0.24);
+
+  --color-status-running: #D97706;
+  --color-status-running-bg: rgba(217, 119, 6, 0.08);
+  --color-status-running-border: rgba(217, 119, 6, 0.24);
+
+  --color-status-pending: #64748B;
+  --color-status-pending-bg: rgba(100, 116, 139, 0.08);
+  --color-status-pending-border: rgba(100, 116, 139, 0.20);
+
+  --color-status-failed: #DC2626;
+  --color-status-failed-bg: rgba(220, 38, 38, 0.08);
+  --color-status-failed-border: rgba(220, 38, 38, 0.24);
+
+  --color-status-skipped: #64748B;
+  --color-status-skipped-bg: rgba(100, 116, 139, 0.08);
+  --color-status-skipped-border: rgba(100, 116, 139, 0.20);
+
+  /* Motion Curves (Defined Once) */
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-200: 200ms;
+  --motion-400: 400ms;
+  --motion-800: 800ms;
+  --motion-1400: 1400ms;
+
+  /* High-Contrast Accessible Focus Rings */
+  --focus-ring: 0 0 0 2px var(--color-bg-base), 0 0 0 4px #07070A;
+}
+
+.dark {
+  /* Dark Theme (Warm Near-Black #07070A) */
+  --color-bg-base: #07070A;
+  --color-bg-surface: #0E1015;
+  --color-bg-surface-subtle: #151720;
+  --color-bg-card: #0E1015;
+
+  --color-ink-primary: #F5F5F3;
+  --color-ink-muted: #9396A4;
+  --color-ink-faint: #56596A;
+
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+
+  /* Primary Button Tokens (Inverted Pure White) */
+  --btn-primary-bg: #FFFFFF;
+  --btn-primary-text: #000000;
+  --btn-primary-hover-bg: #E5E5E2;
+
+  /* Semantic Pipeline Status Colors in Dark Mode */
+  --color-status-success: #34D399;
+  --color-status-success-bg: rgba(52, 211, 153, 0.12);
+  --color-status-success-border: rgba(52, 211, 153, 0.28);
+
+  --color-status-running: #FBBF24;
+  --color-status-running-bg: rgba(251, 191, 36, 0.12);
+  --color-status-running-border: rgba(251, 191, 36, 0.28);
+
+  --color-status-pending: #94A3B8;
+  --color-status-pending-bg: rgba(148, 163, 184, 0.10);
+  --color-status-pending-border: rgba(148, 163, 184, 0.22);
+
+  --color-status-failed: #F87171;
+  --color-status-failed-bg: rgba(248, 113, 113, 0.12);
+  --color-status-failed-border: rgba(248, 113, 113, 0.28);
+
+  --color-status-skipped: #64748B;
+  --color-status-skipped-bg: rgba(100, 116, 139, 0.10);
+  --color-status-skipped-border: rgba(100, 116, 139, 0.22);
+
+  --focus-ring: 0 0 0 2px var(--color-bg-base), 0 0 0 4px #FFFFFF;
+}
+
+/* 3D Scene Viewport Setup */
+.perspective-stage {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Floating Card Keyframes */
+@keyframes floatGentle1 {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(0.4deg); }
+}
+
+@keyframes floatGentle2 {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(12px) rotate(-0.5deg); }
+}
+
+@keyframes floatGentle3 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.3; }
+}
+
+/* Underline Slide Animation (Squarespace Cta Style) */
+.draw-underline {
+  position: relative;
+}
+.draw-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 350ms var(--motion-ease);
+}
+.draw-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Pause Motion Utility for WCAG 2.2.2 */
+.motion-paused * {
+  animation-play-state: paused !important;
+  transition-duration: 0.001ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

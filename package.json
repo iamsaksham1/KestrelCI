@@ -1,0 +1,20 @@
+{
+  "name": "kestrel-ci",
+  "version": "1.0.0",
+  "description": "KestrelCI — High-precision simulated CI/CD pipeline platform",
+  "scripts": {
+    "dev": "node ./node_modules/concurrently/dist/bin/concurrently.js -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,green.bold\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server",
+    "test": "npm test --prefix server && npm test --prefix client",
+    "test:server": "npm test --prefix server",
+    "test:client": "npm test --prefix client",
+    "migrate": "npm run migrate --prefix server",
+    "seed": "npm run seed --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

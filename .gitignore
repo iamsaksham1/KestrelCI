@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+server/.env
+client/.env
+
+# SQLite Database Files
+server/data/*.sqlite
+server/data/*.sqlite-journal
+server/data/*.sqlite-wal
+server/data/*.sqlite-shm
+*.sqlite
+*.sqlite3
+
+# Production Build
+dist/
+build/
+
+# Logs & Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# OS & Editor
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+coverage/

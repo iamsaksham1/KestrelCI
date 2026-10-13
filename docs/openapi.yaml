@@ -1,0 +1,638 @@
+openapi: 3.0.3
+info:
+  title: KestrelCI Orchestration & Pipeline Simulation API
+  description: |
+    Production-grade versioned REST API for KestrelCI.
+    Simulates continuous integration and deployment pipelines, emits live stage telemetry,
+    enforces skip propagation on failure, and persists execution logs.
+  version: 1.1.0
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local development server
+paths:
+  /health:
+    get:
+      summary: Health check probe
+      description: Returns service health status, uptime, and database connectivity.
+      responses:
+        '200':
+          description: Service is operational
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: pass
+                  service:
+                    type: string
+                    example: kestrel-api
+                  simulation:
+                    type: boolean
+                    example: true
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+                      uptimeSec:
+                        type: integer
+                        example: 360
+
+  /projects/analyze-url:
+    post:
+      summary: Inspect public GitHub repository before saving
+      description: |
+        Fetches public repository metadata, recent commit info, primary languages,
+        and safe build manifest files via GitHub REST API without downloading or executing code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - repository_url
+              properties:
+                repository_url:
+                  type: string
+                  example: https://github.com/expressjs/express
+      responses:
+        '200':
+          description: Repository metadata and stack analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RepoAnalysis'
+        '400':
+          description: Invalid repository URL or non-GitHub domain (SSRF guarded)
+
+  /projects:
+    get:
+      summary: List all projects
+      description: Returns all registered projects with pipeline counts and latest execution status.
+      responses:
+        '200':
+          description: A list of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+    post:
+      summary: Create project
+      description: Registers a new project repository and automatically creates a default pipeline.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - repository_url
+              properties:
+                name:
+                  type: string
+                  example: Beacon Ingress Gateway
+                slug:
+                  type: string
+                  example: beacon-gateway
+                description:
+                  type: string
+                  example: Zero-trust edge gateway
+                repository_url:
+                  type: string
+                  example: https://github.com/kestrel-systems/beacon-api
+                default_branch:
+                  type: string
+                  default: main
+      responses:
+        '201':
+          description: Project created successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /projects/{id}:
+    get:
+      summary: Get project by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project details
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete project
+      description: Permanently removes project and cascades to all pipelines, runs, and logs.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project deleted successfully
+
+  /projects/{id}/pipelines:
+    get:
+      summary: List pipelines for project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of pipelines
+
+  /projects/{id}/analyze:
+    post:
+      summary: Refresh repository analysis for project
+      description: Re-analyzes the project's configured GitHub repository and refreshes cached analysis.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Fresh repository analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RepoAnalysis'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /projects/{id}/analysis:
+    get:
+      summary: Get latest cached repository analysis for project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Latest repository analysis or null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RepoAnalysis'
+                    nullable: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pipelines/{id}/run:
+    post:
+      summary: Trigger pipeline run
+      description: |
+        Dispatches an asynchronous pipeline run. Returns immediately (202 Accepted) with the newly allocated run ID.
+        The client polls GET /runs/{runId} every ~1s for live stage state changes.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                failAt:
+                  type: string
+                  nullable: true
+                  enum: [source_checkout, build, unit_tests, code_quality, security_scan, docker_build, deploy_dev]
+                  example: unit_tests
+                failureRate:
+                  type: number
+                  default: 1.0
+                commitSha:
+                  type: string
+                  example: 9f8b4c2
+                commitMessage:
+                  type: string
+                  example: feat(auth): add token revocation
+                branch:
+                  type: string
+                  default: main
+      responses:
+        '202':
+          description: Pipeline run accepted and dispatched in background
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      runId:
+                        type: string
+                        example: run_mv6lmhds_c3684c
+                      runNumber:
+                        type: integer
+                        example: 4
+                      status:
+                        type: string
+                        example: pending
+
+  /runs:
+    get:
+      summary: Paginated run history
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, success, failed, cancelled]
+        - name: project
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        '200':
+          description: Paginated runs list
+
+  /runs/{id}:
+    get:
+      summary: Get run details
+      description: Returns run record together with its ordered 7 stage runs.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run details with stages
+
+  /runs/{id}/logs:
+    get:
+      summary: Get diagnostic logs for run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stage
+          in: query
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [info, warn, error, debug]
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [real, simulated]
+          description: Filter logs by provenance source
+      responses:
+        '200':
+          description: Array of timestamped log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogEntry'
+                  total:
+                    type: integer
+
+  /runs/{id}/analysis:
+    get:
+      summary: Get GitHub repository analysis snapshot for run
+      description: Returns the immutable repository metadata snapshot captured at the start of this pipeline run.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Analysis snapshot or null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RepoAnalysis'
+                    nullable: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /runs/{id}/retry:
+    post:
+      summary: Retry run from failed stage
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Retry dispatched
+
+  /runs/{id}/cancel:
+    post:
+      summary: Cancel active run
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run cancelled
+
+  /runs/history:
+    delete:
+      summary: Wipe run history
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: History wiped
+
+  /dashboard/stats:
+    get:
+      summary: Get dashboard aggregate metrics
+      responses:
+        '200':
+          description: Totals, rates, and recent runs
+
+  /search:
+    get:
+      summary: Global site search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Grouped search results
+
+  /contact:
+    post:
+      summary: Submit contact inquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, subject, message]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                subject:
+                  type: string
+                message:
+                  type: string
+      responses:
+        '201':
+          description: Inquiry stored
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        repository_url:
+          type: string
+        repo_owner:
+          type: string
+          nullable: true
+        repo_name:
+          type: string
+          nullable: true
+        default_branch:
+          type: string
+        pipeline_count:
+          type: integer
+    RepoAnalysis:
+      type: object
+      properties:
+        id:
+          type: string
+        project_id:
+          type: string
+          nullable: true
+        run_id:
+          type: string
+          nullable: true
+        owner:
+          type: string
+        repo:
+          type: string
+        branch:
+          type: string
+        commit_sha:
+          type: string
+        commit_message:
+          type: string
+        commit_author:
+          type: string
+        commit_date:
+          type: string
+        languages:
+          type: object
+          additionalProperties:
+            type: integer
+        detected_stack:
+          type: object
+          properties:
+            ecosystem:
+              type: string
+            framework:
+              type: string
+            package_manager:
+              type: string
+            scripts:
+              type: object
+            dependencies_count:
+              type: integer
+        manifests:
+          type: array
+          items:
+            type: string
+        stars:
+          type: integer
+        license:
+          type: string
+        source:
+          type: string
+          example: github_api
+        fetched_at:
+          type: string
+        rate_limit_remaining:
+          type: integer
+          nullable: true
+    StageRun:
+      type: object
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        stage_name:
+          type: string
+        stage_order:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, success, failed, skipped]
+        source:
+          type: string
+          enum: [real, simulated]
+          default: simulated
+        duration_ms:
+          type: integer
+          nullable: true
+        started_at:
+          type: string
+          nullable: true
+        completed_at:
+          type: string
+          nullable: true
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        stage_name:
+          type: string
+        level:
+          type: string
+          enum: [info, warn, error, debug]
+        message:
+          type: string
+        source:
+          type: string
+          enum: [real, simulated]
+          default: simulated
+        timestamp:
+          type: string
+  responses:
+    Unauthorized:
+      description: Authentication credential missing or invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: UNAUTHORIZED
+                  message:
+                    type: string
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: NOT_FOUND
+                  message:
+                    type: string
+    Conflict:
+      description: Resource conflict (e.g. duplicate slug)
